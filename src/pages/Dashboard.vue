@@ -5,7 +5,8 @@
       <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Overview of your workspace activity and tasks.</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid gap-5 grid-cols-[repeat(auto-fit,minmax(250px,1fr))] mb-8">
+      
       <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
         <div class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Total Projects</div>
         <div class="text-3xl font-bold text-slate-900 dark:text-white">{{ stats.totalProjects }}</div>
@@ -22,6 +23,7 @@
         <div class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Overdue Tasks</div>
         <div class="text-3xl font-bold text-rose-600 dark:text-rose-400">{{ stats.overdueTasks }}</div>
       </div>
+      
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -38,24 +40,19 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useProjectStore } from '../stores/projectStore';
 import { useTaskStore } from '../stores/taskStore';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'vue-chartjs';
 
-// Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const projectStore = useProjectStore();
 const taskStore = useTaskStore();
 
-// Compute statistics dynamically based on the Pinia stores
 const stats = computed(() => {
   const today = new Date();
-  
-  // Assuming 'Done' board has a specific ID or we map it by name in reality. 
-  // For this demo, we'll check if a task exists in the "Done" board or just mock logic based on your DB setup.
   const completed = taskStore.tasks.filter(t => t.board_id === 'done_board_id_placeholder').length; 
   
   const overdue = taskStore.tasks.filter(t => {
@@ -72,12 +69,11 @@ const stats = computed(() => {
   };
 });
 
-// Configure Chart.js Data 
 const chartData = computed(() => ({
   labels: ['Completed', 'Active', 'Overdue'],
   datasets: [
     {
-      backgroundColor: ['#10b981', '#6366f1', '#f43f5e'], // Emerald, Indigo, Rose
+      backgroundColor: ['#10b981', '#6366f1', '#f43f5e'],
       borderWidth: 0,
       data: [stats.value.completedTasks, stats.value.activeTasks - stats.value.overdueTasks, stats.value.overdueTasks]
     }
