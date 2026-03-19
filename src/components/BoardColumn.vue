@@ -37,7 +37,7 @@
 
 <script setup>
 import { ref, watch } from 'vue';
-import draggable from 'vue-draggable-next';
+import { VueDraggableNext as draggable } from 'vue-draggable-next';
 import TaskCard from './TaskCard.vue';
 
 const props = defineProps({
