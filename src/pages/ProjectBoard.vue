@@ -1,20 +1,20 @@
 <template>
   <div class="h-full flex flex-col relative">
     
-    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6 shrink-0">
       <div>
-        <div class="flex items-center gap-2 mb-1 text-sm text-slate-500 dark:text-slate-400 font-medium">
-          <router-link to="/projects" class="hover:text-indigo-600 dark:hover:text-indigo-400">Projects</router-link>
+        <div class="flex items-center gap-2 mb-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+          <router-link to="/workspaces" class="hover:text-indigo-600 dark:hover:text-indigo-400">Workspaces</router-link>
           <span>/</span>
           <span>Current Board</span>
         </div>
-        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Project Board</h2>
+        <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Project Board</h2>
       </div>
       
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 w-full sm:w-auto">
         <button 
           @click="openCreateModal"
-          class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+          class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
         >
           <span>+</span> New Task
         </button>
@@ -25,8 +25,8 @@
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
     </div>
 
-    <div v-else class="flex-1 overflow-x-auto overflow-y-hidden pb-4 custom-scrollbar">
-      <div class="flex gap-6 h-full items-start px-1 min-w-max">
+    <div v-else class="flex-1 overflow-x-auto overflow-y-hidden pb-4 custom-scrollbar snap-x snap-mandatory">
+      <div class="flex gap-4 sm:gap-6 h-full items-start px-1 min-w-max pb-2">
         
         <BoardColumn 
           v-for="board in projectStore.activeBoards" 
@@ -36,49 +36,13 @@
           @update-tasks="handleTaskMove"
           @edit-task="openEditModal"
           @delete-task="handleDeleteTask"
+          class="snap-center sm:snap-align-none" 
         />
-
-      </div>
+        </div>
     </div>
 
     <Modal :isOpen="isTaskModalOpen" @close="closeTaskModal">
-      <template #header>{{ isEditMode ? 'Edit Task' : 'Create New Task' }}</template>
-      <template #body>
-        <form @submit.prevent="handleSaveTask" id="task-form" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Title</label>
-            <input v-model="newTask.title" type="text" required class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none">
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
-            <textarea v-model="newTask.description" rows="3" class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Priority</label>
-              <select v-model="newTask.priority" class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
-              <input v-model="newTask.dueDate" type="date" class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none">
-            </div>
-          </div>
-        </form>
-      </template>
-      <template #footer>
-        <button @click="closeTaskModal" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Cancel</button>
-        <button type="submit" form="task-form" :disabled="!newTask.title.trim()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 cursor-pointer">
-          {{ isEditMode ? 'Save Changes' : 'Save Task' }}
-        </button>
-      </template>
-    </Modal>
-
+        </Modal>
   </div>
 </template>
 
