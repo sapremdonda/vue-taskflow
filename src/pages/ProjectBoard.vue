@@ -4,7 +4,7 @@
     <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6 shrink-0">
       <div>
         <div class="flex items-center gap-2 mb-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
-          <router-link to="/workspaces" class="hover:text-indigo-600 dark:hover:text-indigo-400">Workspaces</router-link>
+          <router-link to="/workspaces" class="hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer">Workspaces</router-link>
           <span>/</span>
           <span>Current Board</span>
         </div>
@@ -30,6 +30,7 @@
           :column="board"
           :tasks="getTasksForBoard(board.id)"
           @update-tasks="handleTaskMove"
+          @view-task="openEditModal"
           @edit-task="openEditModal"
           @delete-task="handleDeleteTask"
           class="snap-center sm:snap-align-none" 
@@ -38,7 +39,7 @@
     </div>
 
     <Modal :isOpen="isTaskModalOpen" @close="closeTaskModal">
-      <template #header>{{ isEditMode ? 'Edit Task' : 'Create New Task' }}</template>
+      <template #header>{{ isEditMode ? 'View / Edit Task' : 'Create New Task' }}</template>
       <template #body>
         <form @submit.prevent="handleSaveTask" id="task-form" class="space-y-4">
           <div>
@@ -52,7 +53,7 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Priority</label>
-              <select v-model="newTask.priority" class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+              <select v-model="newTask.priority" class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
@@ -60,7 +61,7 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
-              <input v-model="newTask.dueDate" type="date" class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+              <input v-model="newTask.dueDate" type="date" class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
             </div>
           </div>
         </form>
@@ -141,11 +142,7 @@ const handleDeleteTask = async (taskId) => {
 
   if (result.isConfirmed) {
     await taskStore.deleteTask(taskId);
-    Swal.fire({
-      toast: true, position: 'top-end', icon: 'success', title: 'Task deleted',
-      showConfirmButton: false, timer: 2000,
-      background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a',
-    });
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Task deleted', showConfirmButton: false, timer: 2000, background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' });
   }
 };
 

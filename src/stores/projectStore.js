@@ -52,7 +52,27 @@ export const useProjectStore = defineStore('project', () => {
       console.error("Error creating project:", err);
     }
   };
-  
+
+  // NEW: Update existing project
+  const updateProject = async (projectId, name, description) => {
+    try {
+      const db = await getDb();
+      const project = await db.get('projects', projectId);
+      if (project) {
+        project.name = name;
+        project.description = description;
+        await db.put('projects', project);
+        const index = projects.value.findIndex(p => p.id === projectId);
+        if (index !== -1) {
+          projects.value[index].name = name;
+          projects.value[index].description = description;
+        }
+      }
+    } catch (err) {
+      console.error("Error updating project:", err);
+    }
+  };
+
   const deleteProject = async (projectId) => {
     try {
       const db = await getDb();
@@ -76,5 +96,5 @@ export const useProjectStore = defineStore('project', () => {
     }
   };
 
-  return { projects, activeBoards, isLoading, fetchProjects, createProject, deleteProject, fetchBoards };
+  return { projects, activeBoards, isLoading, fetchProjects, createProject, updateProject, deleteProject, fetchBoards };
 });

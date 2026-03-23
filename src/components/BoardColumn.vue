@@ -20,6 +20,7 @@
           v-for="task in tasks" 
           :key="task.id" 
           :task="task" 
+          @view="$emit('view-task', $event)"
           @edit="$emit('edit-task', $event)"
           @delete="$emit('delete-task', $event)"
         />
@@ -33,12 +34,8 @@
 import { VueDraggableNext as draggable } from 'vue-draggable-next';
 import TaskCard from './TaskCard.vue';
 
-const props = defineProps({
-  column: Object,
-  tasks: Array
-});
-
-const emit = defineEmits(['update-tasks', 'edit-task', 'delete-task']);
+const props = defineProps({ column: Object, tasks: Array });
+const emit = defineEmits(['update-tasks', 'edit-task', 'delete-task', 'view-task']);
 
 const onChange = (event) => {
   emit('update-tasks', { columnId: props.column.id, event });
@@ -49,4 +46,5 @@ const onChange = (event) => {
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 20px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.8); }
 </style>
