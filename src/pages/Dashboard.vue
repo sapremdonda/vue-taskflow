@@ -68,25 +68,29 @@ onMounted(async () => {
     const userId = authStore.currentUser?.id;
     if (!userId) return;
 
-    // 1. Get ALL projects belonging to the user
-    const projects = await db.getAllFromIndex('projects', 'created_by', userId);
-    const projectIds = projects.map(p => p.id);
+    // 1. Get ONLY active Workspaces for this user
+    const allWorkspaces = await db.getAll('workspaces');
+    const userWorkspaces = allWorkspaces.filter(w => w.created_by === userId);
+    const workspaceIds = userWorkspaces.map(w => w.id);
 
-    // 2. Get ALL boards belonging to those specific projects
+    // 2. Get ONLY projects that belong to an active Workspace (Ignores Ghosts!)
+    const allProjects = await db.getAll('projects');
+    const userProjects = allProjects.filter(p => p.created_by === userId && workspaceIds.includes(p.workspace_id));
+    const projectIds = userProjects.map(p => p.id);
+
+    // 3. Get Boards & Tasks
     const allBoards = await db.getAll('boards');
     const userBoards = allBoards.filter(b => projectIds.includes(b.project_id));
     const userBoardIds = userBoards.map(b => b.id);
-    
-    // Find specifically the "Done" boards for completion tracking
     const doneBoardIds = userBoards.filter(b => b.name === 'Done').map(b => b.id);
 
-    // 3. Get ALL tasks belonging to those specific boards (Bulletproof mapping!)
     const allTasks = await db.getAll('tasks');
     const userTasks = allTasks.filter(t => userBoardIds.includes(t.board_id));
 
-    // 4. Calculate accurate statistics
+    // Calculate Completion
     const completed = userTasks.filter(t => doneBoardIds.includes(t.board_id)).length;
 
+    // Calculate Overdue
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -98,12 +102,13 @@ onMounted(async () => {
     }).length;
 
     stats.value = {
-      totalProjects: projects.length,
+      totalProjects: userProjects.length,
       totalTasks: userTasks.length,
       completedTasks: completed,
       overdueTasks: overdue,
       activeTasks: userTasks.length - completed
     };
+
   } catch (error) {
     console.error("Dashboard failed to load stats:", error);
   } finally {
@@ -112,7 +117,7 @@ onMounted(async () => {
 });
 
 const chartData = computed(() => ({
-  labels: ['Completed', 'Active', 'Overdue'],
+  labels: ['Completed', 'Active (On Time)', 'Overdue'],
   datasets: [{
     backgroundColor: ['#10b981', '#6366f1', '#f43f5e'],
     borderWidth: 0,

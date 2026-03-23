@@ -94,7 +94,10 @@ const openEditModal = (workspace) => {
   isModalOpen.value = true;
 };
 
-const closeModal = () => isModalOpen.value = false;
+const closeModal = () => {
+  isModalOpen.value = false;
+  isSaving.value = false;
+};
 
 const handleDeleteWorkspace = async (id) => {
   activeMenu.value = null;
@@ -121,15 +124,20 @@ const handleSaveWorkspace = async () => {
   if (!newWorkspaceName.value.trim()) return;
   isSaving.value = true;
   
-  if (isEditMode.value) {
-    await workspaceStore.updateWorkspace(editingWorkspaceId.value, newWorkspaceName.value);
-  } else {
-    await workspaceStore.createWorkspace(newWorkspaceName.value);
+  try {
+    if (isEditMode.value) {
+      await workspaceStore.updateWorkspace(editingWorkspaceId.value, newWorkspaceName.value);
+    } else {
+      await workspaceStore.createWorkspace(newWorkspaceName.value);
+    }
+  } catch (err) {
+    console.error("Save failed:", err);
+  } finally {
+    // Guaranteed to execute, so the modal will close and the button will reset
+    setTimeout(() => {
+      isSaving.value = false;
+      closeModal();
+    }, 300);
   }
-  
-  setTimeout(() => {
-    isSaving.value = false;
-    closeModal();
-  }, 400);
 };
 </script>

@@ -14,10 +14,10 @@ export const useProjectStore = defineStore('project', () => {
     isLoading.value = true;
     try {
       const db = await getDb();
-      const allProjects = await db.getAllFromIndex('projects', 'workspace_id', workspaceId);
-      projects.value = allProjects;
+      const all = await db.getAll('projects');
+      projects.value = all.filter(p => p.workspace_id === workspaceId);
     } catch (err) {
-      console.error("Error fetching projects:", err);
+      console.error(err);
     } finally {
       isLoading.value = false;
     }
@@ -49,11 +49,10 @@ export const useProjectStore = defineStore('project', () => {
 
       projects.value.push(newProject);
     } catch (err) {
-      console.error("Error creating project:", err);
+      console.error(err);
     }
   };
 
-  // NEW: Update existing project
   const updateProject = async (projectId, name, description) => {
     try {
       const db = await getDb();
@@ -69,7 +68,7 @@ export const useProjectStore = defineStore('project', () => {
         }
       }
     } catch (err) {
-      console.error("Error updating project:", err);
+      console.error(err);
     }
   };
 
@@ -79,7 +78,7 @@ export const useProjectStore = defineStore('project', () => {
       await db.delete('projects', projectId);
       projects.value = projects.value.filter(p => p.id !== projectId);
     } catch (err) {
-      console.error("Error deleting project:", err);
+      console.error(err);
     }
   };
 
@@ -87,10 +86,11 @@ export const useProjectStore = defineStore('project', () => {
     isLoading.value = true;
     try {
       const db = await getDb();
-      const boards = await db.getAllFromIndex('boards', 'project_id', projectId);
+      const all = await db.getAll('boards');
+      const boards = all.filter(b => b.project_id === projectId);
       activeBoards.value = boards.sort((a, b) => a.order - b.order);
     } catch (err) {
-      console.error("Error fetching boards:", err);
+      console.error(err);
     } finally {
       isLoading.value = false;
     }
