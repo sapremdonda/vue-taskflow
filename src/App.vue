@@ -25,26 +25,18 @@
           </div>
 
           <nav class="space-y-1">
-            <router-link to="/dashboard" class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" active-class="bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400">
-              Dashboard
-            </router-link>
-            <router-link to="/workspaces" class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" active-class="bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400">
-              Workspaces
-            </router-link>
+            <router-link to="/dashboard" class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" active-class="bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400">Dashboard</router-link>
+            <router-link to="/workspaces" class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" active-class="bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400">Workspaces</router-link>
           </nav>
         </div>
 
         <div class="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
-          <router-link to="/settings" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">
-            Settings
-          </router-link>
+          <router-link to="/settings" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">Settings</router-link>
           <button @click="toggleDarkMode" class="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
             <span>Dark Mode</span>
             <span class="text-xs bg-slate-200 dark:bg-slate-600 px-2 py-1 rounded hidden lg:inline-block">⌘D</span>
           </button>
-          <button @click="handleLogout" class="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-md transition-colors cursor-pointer">
-            Log Out
-          </button>
+          <button @click="handleLogout" class="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-md transition-colors cursor-pointer">Log Out</button>
         </div>
       </aside>
 
@@ -62,8 +54,20 @@
               </div>
               <input v-model="searchQuery" id="global-search" type="text" placeholder="Search..." class="w-full bg-slate-100 dark:bg-slate-900 border-transparent rounded-lg pl-9 sm:pl-10 pr-4 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-white placeholder-slate-400 outline-none transition-all">
             </div>
+
             <div v-if="searchQuery" class="absolute top-full mt-2 w-full bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
-               </div>
+              <div class="p-2">
+                <div v-if="searchResults.projects.length === 0 && searchResults.tasks.length === 0" class="p-3 text-sm text-slate-500 text-center">No results found</div>
+                <div v-if="searchResults.projects.length > 0" class="mb-2">
+                  <div class="text-xs font-bold text-slate-400 uppercase px-3 py-1">Projects</div>
+                  <router-link v-for="p in searchResults.projects" :key="p.id" :to="'/projects/' + p.id" @click="searchQuery = ''" class="block px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg cursor-pointer">{{ p.name }}</router-link>
+                </div>
+                <div v-if="searchResults.tasks.length > 0">
+                  <div class="text-xs font-bold text-slate-400 uppercase px-3 py-1">Tasks</div>
+                  <router-link v-for="t in searchResults.tasks" :key="t.id" :to="'/projects/' + t.project_id" @click="searchQuery = ''" class="block px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg cursor-pointer">{{ t.title }}</router-link>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="ml-2 sm:ml-4 flex items-center gap-2 sm:gap-4">
@@ -91,7 +95,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'; // Added watch
+import { ref, watch, onMounted } from 'vue';
 import { useDark, useToggle } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
 import { initDB } from './database/index';
@@ -106,13 +110,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 const taskStore = useTaskStore();
 
-// UI State
 const isSidebarOpen = ref(false);
-
-// Auto-close sidebar on mobile when navigating to a new page
-watch(() => route.path, () => {
-  isSidebarOpen.value = false;
-});
+watch(() => route.path, () => { isSidebarOpen.value = false; });
 
 const { triggerNotification } = useAppSystem();
 const { searchQuery, searchResults } = useSearch();
@@ -139,7 +138,5 @@ const showTaskStatusNotification = () => {
   }
 };
 
-onMounted(async () => {
-  await initDB();
-});
+onMounted(async () => await initDB());
 </script>

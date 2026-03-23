@@ -6,61 +6,51 @@ import { useAuthStore } from './authStore';
 export const useWorkspaceStore = defineStore('workspace', () => {
   const workspaces = ref([]);
   const isLoading = ref(false);
-  const error = ref(null);
 
   const getDb = async () => await initDB();
 
-  // Fetch workspaces belonging to the logged-in user
   const fetchWorkspaces = async () => {
     isLoading.value = true;
-    error.value = null;
     try {
-      const authStore = useAuthStore();
-      if (!authStore.currentUser) throw new Error('User not authenticated');
-
       const db = await getDb();
-      // Use the IndexedDB index we created earlier to find workspaces by owner_id
-      const allWorkspaces = await db.getAllFromIndex('workspaces', 'owner_id', authStore.currentUser.id);
-      workspaces.value = allWorkspaces.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const authStore = useAuthStore();
+      if (!authStore.currentUser) return;
+
+      const all = await db.getAllFromIndex('workspaces', 'created_by', authStore.currentUser.id);
+      workspaces.value = all;
     } catch (err) {
-      error.value = err.message;
+      console.error("Error fetching workspaces:", err);
     } finally {
       isLoading.value = false;
     }
   };
 
-  // Create a new workspace with the exact required fields 
   const createWorkspace = async (name) => {
-    isLoading.value = true;
-    error.value = null;
     try {
-      const authStore = useAuthStore();
       const db = await getDb();
-
+      const authStore = useAuthStore();
       const newWorkspace = {
         id: crypto.randomUUID(),
-        name: name,
-        owner_id: authStore.currentUser.id,
+        name,
+        created_by: authStore.currentUser.id,
         created_at: new Date().toISOString()
       };
-
       await db.add('workspaces', newWorkspace);
-      workspaces.value.unshift(newWorkspace); // Add to local state
-      
-      return newWorkspace;
+      workspaces.value.push(newWorkspace);
     } catch (err) {
-      error.value = err.message;
-      return null;
-    } finally {
-      isLoading.value = false;
+      console.error("Error creating workspace:", err);
     }
   };
 
-  return {
-    workspaces,
-    isLoading,
-    error,
-    fetchWorkspaces,
-    createWorkspace
+  const deleteWorkspace = async (workspaceId) => {
+    try {
+      const db = await getDb();
+      await db.delete('workspaces', workspaceId);
+      workspaces.value = workspaces.value.filter(w => w.id !== workspaceId);
+    } catch (err) {
+      console.error("Error deleting workspace:", err);
+    }
   };
+
+  return { workspaces, isLoading, fetchWorkspaces, createWorkspace, deleteWorkspace };
 });

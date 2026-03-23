@@ -25,8 +25,8 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" /></svg>
           </button>
           
-          <div v-if="activeMenu === workspace.id" class="absolute right-0 mt-2 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10">
-            <button @click="deleteWorkspace(workspace.id)" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg cursor-pointer">Delete</button>
+          <div v-if="activeMenu === workspace.id" class="absolute right-0 mt-2 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 overflow-hidden">
+            <button @click="handleDeleteWorkspace(workspace.id)" class="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 cursor-pointer">Delete</button>
           </div>
         </div>
 
@@ -47,11 +47,11 @@
       <template #body>
         <form @submit.prevent="handleCreateWorkspace" id="workspace-form">
           <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Workspace Name</label>
-          <input v-model="newWorkspaceName" type="text" required class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 focus:ring-2 focus:ring-indigo-500 outline-none">
+          <input v-model="newWorkspaceName" type="text" required class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none">
         </form>
       </template>
       <template #footer>
-        <button @click="isModalOpen = false" class="px-4 py-2 text-sm font-medium text-slate-600 cursor-pointer">Cancel</button>
+        <button @click="isModalOpen = false" type="button" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Cancel</button>
         <button type="submit" form="workspace-form" :disabled="!newWorkspaceName.trim() || isCreating" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg cursor-pointer disabled:opacity-50 flex items-center gap-2">
           <span v-if="isCreating" class="animate-spin">↻</span>
           {{ isCreating ? 'Creating...' : 'Create Workspace' }}
@@ -65,6 +65,7 @@
 import { ref, onMounted } from 'vue';
 import { useWorkspaceStore } from '../stores/workspaceStore';
 import Modal from '../components/Modal.vue';
+import Swal from 'sweetalert2';
 
 const workspaceStore = useWorkspaceStore();
 const isModalOpen = ref(false);
@@ -80,23 +81,41 @@ const toggleMenu = (id) => {
   activeMenu.value = activeMenu.value === id ? null : id;
 };
 
-const deleteWorkspace = async (id) => {
-  // In a real app, wire this to a delete function in the store
-  activeMenu.value = null;
-  alert('Delete workspace function ready to be wired!');
+const handleDeleteWorkspace = async (id) => {
+  activeMenu.value = null; // Close menu
+  const isDark = document.documentElement.classList.contains('dark');
+  
+  const result = await Swal.fire({
+    title: 'Delete workspace?',
+    text: "This will remove the workspace and all associated projects.",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#e11d48',
+    cancelButtonColor: isDark ? '#475569' : '#94a3b8',
+    confirmButtonText: 'Yes, delete it!',
+    background: isDark ? '#1e293b' : '#ffffff',
+    color: isDark ? '#f8fafc' : '#0f172a',
+  });
+
+  if (result.isConfirmed) {
+    await workspaceStore.deleteWorkspace(id);
+    Swal.fire({
+      toast: true, position: 'top-end', icon: 'success', title: 'Workspace deleted',
+      showConfirmButton: false, timer: 2000,
+      background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a',
+    });
+  }
 };
 
 const handleCreateWorkspace = async () => {
   if (!newWorkspaceName.value.trim()) return;
-  
   isCreating.value = true;
   await workspaceStore.createWorkspace(newWorkspaceName.value);
   
-  // Simulate network delay for the loader
   setTimeout(() => {
     isCreating.value = false;
     newWorkspaceName.value = '';
     isModalOpen.value = false;
-  }, 500);
+  }, 400);
 };
 </script>

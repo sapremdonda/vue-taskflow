@@ -1,21 +1,21 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { initDB } from '../database/index';
+import { useAuthStore } from './authStore';
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref([]);
-  const activeBoards = ref([]); // The columns for the currently viewed project
+  const activeBoards = ref([]);
   const isLoading = ref(false);
 
   const getDb = async () => await initDB();
 
-  // Fetch all projects for a specific workspace
   const fetchProjects = async (workspaceId) => {
     isLoading.value = true;
     try {
       const db = await getDb();
       const allProjects = await db.getAllFromIndex('projects', 'workspace_id', workspaceId);
-      projects.value = allProjects.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      projects.value = allProjects;
     } catch (err) {
       console.error("Error fetching projects:", err);
     } finally {
@@ -23,53 +23,58 @@ export const useProjectStore = defineStore('project', () => {
     }
   };
 
-  // Create a project AND its default columns 
   const createProject = async (workspaceId, name, description) => {
-    isLoading.value = true;
     try {
       const db = await getDb();
-      const projectId = crypto.randomUUID();
-
+      const authStore = useAuthStore();
       const newProject = {
-        id: projectId,
+        id: crypto.randomUUID(),
         workspace_id: workspaceId,
         name,
         description,
+        created_by: authStore.currentUser?.id,
         created_at: new Date().toISOString()
       };
-
       await db.add('projects', newProject);
-      projects.value.unshift(newProject);
 
-      // Automatically generate default columns
-      const defaultColumns = ['To Do', 'In Progress', 'Review', 'Done'];
-      for (let i = 0; i < defaultColumns.length; i++) {
-        await db.add('boards', {
-          id: crypto.randomUUID(),
-          project_id: projectId,
-          name: defaultColumns[i],
-          position: i
-        });
+      const boards = [
+        { id: crypto.randomUUID(), project_id: newProject.id, name: 'To Do', order: 0 },
+        { id: crypto.randomUUID(), project_id: newProject.id, name: 'In Progress', order: 1 },
+        { id: crypto.randomUUID(), project_id: newProject.id, name: 'Review', order: 2 },
+        { id: crypto.randomUUID(), project_id: newProject.id, name: 'Done', order: 3 }
+      ];
+      for (const board of boards) {
+        await db.add('boards', board);
       }
-      return projectId;
+
+      projects.value.push(newProject);
     } catch (err) {
       console.error("Error creating project:", err);
-      return null;
+    }
+  };
+  
+  const deleteProject = async (projectId) => {
+    try {
+      const db = await getDb();
+      await db.delete('projects', projectId);
+      projects.value = projects.value.filter(p => p.id !== projectId);
+    } catch (err) {
+      console.error("Error deleting project:", err);
+    }
+  };
+
+  const fetchBoards = async (projectId) => {
+    isLoading.value = true;
+    try {
+      const db = await getDb();
+      const boards = await db.getAllFromIndex('boards', 'project_id', projectId);
+      activeBoards.value = boards.sort((a, b) => a.order - b.order);
+    } catch (err) {
+      console.error("Error fetching boards:", err);
     } finally {
       isLoading.value = false;
     }
   };
 
-  // Fetch columns for the Kanban board
-  const fetchBoards = async (projectId) => {
-    try {
-      const db = await getDb();
-      const boards = await db.getAllFromIndex('boards', 'project_id', projectId);
-      activeBoards.value = boards.sort((a, b) => a.position - b.position);
-    } catch (err) {
-      console.error("Error fetching boards:", err);
-    }
-  };
-
-  return { projects, activeBoards, isLoading, fetchProjects, createProject, fetchBoards };
+  return { projects, activeBoards, isLoading, fetchProjects, createProject, deleteProject, fetchBoards };
 });

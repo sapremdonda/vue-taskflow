@@ -12,10 +12,7 @@
       </div>
       
       <div class="flex items-center gap-3 w-full sm:w-auto">
-        <button 
-          @click="openCreateModal"
-          class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-        >
+        <button @click="openCreateModal" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer">
           <span>+</span> New Task
         </button>
       </div>
@@ -27,7 +24,6 @@
 
     <div v-else class="flex-1 overflow-x-auto overflow-y-hidden pb-4 custom-scrollbar snap-x snap-mandatory">
       <div class="flex gap-4 sm:gap-6 h-full items-start px-1 min-w-max pb-2">
-        
         <BoardColumn 
           v-for="board in projectStore.activeBoards" 
           :key="board.id"
@@ -38,22 +34,56 @@
           @delete-task="handleDeleteTask"
           class="snap-center sm:snap-align-none" 
         />
-        </div>
+      </div>
     </div>
 
     <Modal :isOpen="isTaskModalOpen" @close="closeTaskModal">
-        </Modal>
+      <template #header>{{ isEditMode ? 'Edit Task' : 'Create New Task' }}</template>
+      <template #body>
+        <form @submit.prevent="handleSaveTask" id="task-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Title</label>
+            <input v-model="newTask.title" type="text" required class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+            <textarea v-model="newTask.description" rows="3" class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Priority</label>
+              <select v-model="newTask.priority" class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
+              <input v-model="newTask.dueDate" type="date" class="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+          </div>
+        </form>
+      </template>
+      <template #footer>
+        <button @click="closeTaskModal" type="button" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Cancel</button>
+        <button type="submit" form="task-form" :disabled="!newTask.title.trim() || isSaving" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2">
+          <span v-if="isSaving" class="animate-spin">↻</span>
+          {{ isSaving ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Save Task') }}
+        </button>
+      </template>
+    </Modal>
   </div>
 </template>
 
 <script setup>
-import Swal from 'sweetalert2';
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useProjectStore } from '../stores/projectStore';
 import { useTaskStore } from '../stores/taskStore';
 import BoardColumn from '../components/BoardColumn.vue';
 import Modal from '../components/Modal.vue';
+import Swal from 'sweetalert2';
 
 const route = useRoute();
 const projectStore = useProjectStore();
@@ -62,13 +92,9 @@ const taskStore = useTaskStore();
 const isTaskModalOpen = ref(false);
 const isEditMode = ref(false);
 const editingTaskId = ref(null);
+const isSaving = ref(false);
 
-const newTask = ref({
-  title: '',
-  description: '',
-  priority: 'Low',
-  dueDate: ''
-});
+const newTask = ref({ title: '', description: '', priority: 'Low', dueDate: '' });
 
 onMounted(async () => {
   const projectId = route.params.id;
@@ -79,15 +105,10 @@ onMounted(async () => {
   }
 });
 
-const getTasksForBoard = (boardId) => {
-  return taskStore.tasks.filter(task => task.board_id === boardId);
-};
+const getTasksForBoard = (boardId) => taskStore.tasks.filter(t => t.board_id === boardId);
 
 const handleTaskMove = async ({ columnId, event }) => {
-  if (event.added) {
-    const taskId = event.added.element.id;
-    await taskStore.moveTask(taskId, columnId);
-  }
+  if (event.added) await taskStore.moveTask(event.added.element.id, columnId);
 };
 
 const openCreateModal = () => {
@@ -100,25 +121,19 @@ const openCreateModal = () => {
 const openEditModal = (task) => {
   isEditMode.value = true;
   editingTaskId.value = task.id;
-  newTask.value = { 
-    title: task.title, 
-    description: task.description, 
-    priority: task.priority || 'Low', 
-    dueDate: task.dueDate || '' 
-  };
+  newTask.value = { title: task.title, description: task.description, priority: task.priority || 'Low', dueDate: task.dueDate || '' };
   isTaskModalOpen.value = true;
 };
 
 const handleDeleteTask = async (taskId) => {
   const isDark = document.documentElement.classList.contains('dark');
-
   const result = await Swal.fire({
     title: 'Delete this task?',
     text: "You won't be able to revert this!",
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#e11d48', 
-    cancelButtonColor: isDark ? '#475569' : '#94a3b8', 
+    confirmButtonColor: '#e11d48',
+    cancelButtonColor: isDark ? '#475569' : '#94a3b8',
     confirmButtonText: 'Yes, delete it!',
     background: isDark ? '#1e293b' : '#ffffff',
     color: isDark ? '#f8fafc' : '#0f172a',
@@ -126,46 +141,30 @@ const handleDeleteTask = async (taskId) => {
 
   if (result.isConfirmed) {
     await taskStore.deleteTask(taskId);
-    
     Swal.fire({
-      toast: true,
-      position: 'top-end',
-      icon: 'success',
-      title: 'Task deleted',
-      showConfirmButton: false,
-      timer: 2000,
-      background: isDark ? '#1e293b' : '#ffffff',
-      color: isDark ? '#f8fafc' : '#0f172a',
+      toast: true, position: 'top-end', icon: 'success', title: 'Task deleted',
+      showConfirmButton: false, timer: 2000,
+      background: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a',
     });
   }
 };
 
-const closeTaskModal = () => {
-  isTaskModalOpen.value = false;
-};
+const closeTaskModal = () => isTaskModalOpen.value = false;
 
 const handleSaveTask = async () => {
   if (!newTask.value.title.trim() || projectStore.activeBoards.length === 0) return;
-  
+  isSaving.value = true;
+
   if (isEditMode.value) {
-    await taskStore.updateTask(editingTaskId.value, {
-      title: newTask.value.title,
-      description: newTask.value.description,
-      priority: newTask.value.priority,
-      dueDate: newTask.value.dueDate
-    });
+    await taskStore.updateTask(editingTaskId.value, newTask.value);
   } else {
-    const firstBoardId = projectStore.activeBoards[0].id;
-    await taskStore.createTask(
-      firstBoardId,
-      newTask.value.title,
-      newTask.value.description,
-      newTask.value.priority,
-      newTask.value.dueDate
-    );
+    await taskStore.createTask(projectStore.activeBoards[0].id, newTask.value.title, newTask.value.description, newTask.value.priority, newTask.value.dueDate);
   }
   
-  closeTaskModal();
+  setTimeout(() => {
+    isSaving.value = false;
+    closeTaskModal();
+  }, 400);
 };
 </script>
 
